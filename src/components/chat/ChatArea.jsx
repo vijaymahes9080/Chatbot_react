@@ -109,7 +109,7 @@ const ChatArea = () => {
           </div>
           <div>
             <h2 className="text-xs font-semibold text-slate-200">
-              {activeConversation ? activeConversation.title : 'No Active Chat'}
+              {activeConversation ? activeConversation.title : 'New Chat'}
             </h2>
             <p className="text-[10px] text-slate-500 flex items-center gap-1 font-mono">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -273,9 +273,6 @@ const ChatArea = () => {
             <VoiceRecorderUI onClose={() => setShowVoiceRecorder(false)} />
           )}
 
-          <p className="text-center text-[9px] text-slate-500">
-            AetherMind workstation aggregates sandbox nodes and vector clusters. Verify outputs before running in production.
-          </p>
         </div>
       </div>
     </div>

@@ -9,9 +9,7 @@ export const ChatProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : INITIAL_CONVERSATIONS;
   });
   
-  const [activeConversationId, setActiveConversationId] = useState(() => {
-    return conversations.length > 0 ? conversations[0].id : null;
-  });
+  const [activeConversationId, setActiveConversationId] = useState(null);
 
   const [folders, setFolders] = useState(FOLDERS);
   const [activeModelId, setActiveModelId] = useState('gemini-2-5');

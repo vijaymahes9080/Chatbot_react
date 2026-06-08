@@ -32,7 +32,7 @@ export const INITIAL_CONVERSATIONS = [
     id: 'chat-1',
     title: 'Optimizing RAG Embeddings',
     folderId: 'f-research',
-    pinned: true,
+    pinned: false,
     modelId: 'gemini-2-5',
     lastUpdated: '2 hours ago',
     messages: [
@@ -108,7 +108,7 @@ Here is a visual map of the retrieval flow:
     id: 'chat-2',
     title: 'React 19 System Refactor',
     folderId: 'f-code',
-    pinned: true,
+    pinned: false,
     modelId: 'claude-3-7',
     lastUpdated: '1 day ago',
     messages: [

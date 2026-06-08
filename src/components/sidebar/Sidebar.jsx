@@ -179,7 +179,7 @@ const Sidebar = () => {
       <div className="p-3 shrink-0 flex flex-col gap-2">
         <button
           onClick={() => {
-            createConversation();
+            setActiveConversationId(null);
             if (location.pathname !== '/') navigate('/');
           }}
           className={`w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg font-medium text-sm transition-all duration-300 ${
