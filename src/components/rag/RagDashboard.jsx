@@ -1,17 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Upload, FileText, CheckCircle, Clock, Trash2, Search,
   Compass, ChevronDown, ChevronUp, AlertCircle
 } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
 import { RAG_MOCK } from '../../utils/mockData';
+import { api } from '../../utils/api';
 
 const RagDashboard = () => {
   const { uploadedFiles, handleFileUpload, deleteUploadedFile } = useChat();
   const [ragState] = useState(RAG_MOCK);
+  const [uploadedDocs, setUploadedDocs] = useState([]);
   const [queryTerm, setQueryTerm] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [similarityResults, setSimilarityResults] = useState(ragState.chunks);
+
+  const loadFiles = async () => {
+    try {
+      const files = await api.getFiles();
+      setUploadedDocs(files);
+    } catch (err) {
+      console.error('Failed to load RAG files from API', err);
+    }
+  };
+
+  useEffect(() => {
+    loadFiles();
+  }, [uploadedFiles]);
 
   const onDragOver = (e) => e.preventDefault();
   const handleDrop = (e) => {
@@ -22,16 +37,22 @@ const RagDashboard = () => {
     if (e.target.files) handleFileUpload(e.target.files);
   };
 
-  const handleSearchChunks = (e) => {
+  const handleSearchChunks = async (e) => {
     e.preventDefault();
     if (!queryTerm.trim()) {
       setSimilarityResults(ragState.chunks);
       return;
     }
-    const matches = ragState.chunks.filter(c => 
-      c.text.toLowerCase().includes(queryTerm.toLowerCase())
+    // Search simulation or live endpoint query
+    const matches = uploadedDocs.filter(c => 
+      c.name.toLowerCase().includes(queryTerm.toLowerCase())
     );
-    setSimilarityResults(matches);
+    setSimilarityResults(matches.map(m => ({
+      id: m.id,
+      text: `File: ${m.name} size: ${m.size} in DB.`,
+      score: m.similarity || 0.85,
+      source: m.name
+    })));
   };
 
   const activeUploads = uploadedFiles.filter(f => f.status === 'uploading' || f.status === 'ready');
@@ -59,7 +80,7 @@ const RagDashboard = () => {
       <div className="space-y-1.5">
         <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Documents</h4>
         <div className="space-y-1 max-h-36 overflow-y-auto">
-          {ragState.uploadedDocs.map(doc => (
+          {uploadedDocs.map(doc => (
             <div key={doc.id} className="p-2 rounded bg-slate-900 border border-white/5 flex items-center justify-between text-[11px]">
               <span className="font-medium text-slate-200 truncate max-w-[200px]">{doc.name}</span>
               <span className="text-[9px] text-indigo-400 font-mono">{(doc.similarity * 100).toFixed(0)}% Match</span>

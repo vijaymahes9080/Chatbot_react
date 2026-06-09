@@ -4,44 +4,34 @@ import {
   Terminal, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { BROWSER_AGENT_MOCK } from '../../utils/mockData';
+import { api } from '../../utils/api';
 
 const BrowserDashboard = () => {
   const [browserState, setBrowserState] = useState(BROWSER_AGENT_MOCK);
   const [customQuery, setCustomQuery] = useState('');
-  const [isRunning, setIsRunning] = useState(true);
+  const [isRunning, setIsRunning] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
-
   const [liveLogs, setLiveLogs] = useState(browserState.logs);
-  useEffect(() => {
-    if (!isRunning) return;
-    const interval = setInterval(() => {
-      const extraLogs = [
-        `[SCRAPE] Extracted text from chunk ${Math.floor(Math.random() * 50)}...`,
-        `[API] Querying embedding weights for vector comparison`,
-        `[BROWSER] Scrolling viewport to coordinates [0, 840]`,
-        `[INFO] Filtered out duplicate sources`
-      ];
-      const randomLog = extraLogs[Math.floor(Math.random() * extraLogs.length)];
-      setLiveLogs(prev => [...prev.slice(1), randomLog]);
-    }, 4500);
 
-    return () => clearInterval(interval);
-  }, [isRunning]);
-
-  const handleSearchSubmit = (e) => {
+  const handleSearchSubmit = async (e) => {
     e.preventDefault();
     if (!customQuery.trim()) return;
 
-    setBrowserState(prev => ({
-      ...prev,
-      status: 'researching',
-      searchQuery: customQuery,
-      currentUrl: `https://duckduckgo.com/?q=${encodeURIComponent(customQuery)}`
-    }));
-
     setIsRunning(true);
-    setLiveLogs(prev => [...prev, `[USER_QUERY] Initiated search: "${customQuery}"`]);
+    const query = customQuery;
     setCustomQuery('');
+
+    setLiveLogs(prev => [...prev, `[USER_QUERY] Initiated live crawler research: "${query}"`]);
+
+    try {
+      const searchResponse = await api.searchWeb(query);
+      setBrowserState(searchResponse);
+      setLiveLogs(searchResponse.logs || []);
+    } catch (err) {
+      console.error('Failed to run browser agent web search', err);
+    } finally {
+      setIsRunning(false);
+    }
   };
 
   return (

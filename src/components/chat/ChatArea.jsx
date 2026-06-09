@@ -1,11 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Send, Paperclip, Mic, Image, FileText, ArrowDown,
-  Sparkles, ShieldCheck, ChevronRight, X, BrainCircuit, Pin
+  Send, Paperclip, Mic, FileText,
+  Sparkles, X, BrainCircuit, Pin,
+  ChevronDown, Check, Zap, Shield, Activity, Globe, Wind
 } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
 import ChatBubble from './ChatBubble';
 import VoiceRecorderUI from './VoiceRecorderUI';
+import { api } from '../../utils/api';
+import { MODELS } from '../../utils/mockData';
+
+const getModelIcon = (icon, cls = 'h-3.5 w-3.5') => {
+  switch (icon) {
+    case 'zap':       return <Zap className={`${cls} text-amber-400`} />;
+    case 'shield':    return <Shield className={`${cls} text-teal-400`} />;
+    case 'sparkles': return <Sparkles className={`${cls} text-indigo-400`} />;
+    case 'activity': return <Activity className={`${cls} text-emerald-400`} />;
+    case 'globe':    return <Globe className={`${cls} text-blue-400`} />;
+    case 'wind':     return <Wind className={`${cls} text-violet-400`} />;
+    default:         return <Sparkles className={`${cls} text-indigo-400`} />;
+  }
+};
 
 const ChatArea = () => {
   const {
@@ -15,8 +30,39 @@ const ChatArea = () => {
     uploadedFiles,
     handleFileUpload,
     deleteUploadedFile,
-    pinnedMessages
+    pinnedMessages,
+    activeModelId,
+    setActiveModelId
   } = useChat();
+
+  const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
+  const selectedModel = MODELS.find(m => m.id === activeModelId) || MODELS[0];
+
+  const [apiKeys, setApiKeys] = useState({
+    openai: false,
+    anthropic: false,
+    google: false,
+    deepseek: false
+  });
+
+  useEffect(() => {
+    const loadConnectionConfig = async () => {
+      try {
+        const config = await api.getSettings();
+        if (config && config.api_keys) {
+          setApiKeys({
+            openai: !!(config.api_keys.openai || config.api_keys.OPENAI),
+            anthropic: !!(config.api_keys.anthropic || config.api_keys.ANTHROPIC),
+            google: !!(config.api_keys.google || config.api_keys.GOOGLE),
+            deepseek: !!(config.api_keys.deepseek || config.api_keys.DEEPSEEK)
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load active connection keys', err);
+      }
+    };
+    loadConnectionConfig();
+  }, [activeConversation]);
 
   const [input, setInput] = useState('');
   const [dragActive, setDragActive] = useState(false);
@@ -166,6 +212,37 @@ const ChatArea = () => {
               </p>
             </div>
 
+            {/* Model Connections List */}
+            <div id="connections-list" className="w-full bg-[#0b0f19]/80 border border-white/5 rounded-2xl p-4 space-y-3">
+              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left">Active Model Gateways</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {[
+                  { name: 'GPT-5', connected: apiKeys.openai },
+                  { name: 'Claude 3.7', connected: apiKeys.anthropic },
+                  { name: 'Gemini 2.5', connected: apiKeys.google },
+                  { name: 'DeepSeek-R1', connected: apiKeys.deepseek },
+                  { name: 'Llama 3.3', connected: true, isFree: true }
+                ].map((gate) => (
+                  <div key={gate.name} className="flex items-center justify-between p-2 rounded bg-slate-950/60 border border-white/5 gap-1">
+                    <span className="text-[10px] font-medium text-slate-300 truncate">{gate.name}</span>
+                    <span className="flex items-center gap-1.5 shrink-0">
+                      {gate.isFree && <span className="text-[8px] text-blue-400 font-mono">Free</span>}
+                      <span className="flex h-2 w-2 relative">
+                        {gate.connected && (
+                          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                            gate.isFree ? 'bg-blue-400' : 'bg-emerald-400'
+                          }`} />
+                        )}
+                        <span className={`relative inline-flex rounded-full h-2 w-2 ${
+                          gate.isFree ? 'bg-blue-500' : gate.connected ? 'bg-emerald-500' : 'bg-amber-500'
+                        }`} />
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
               {[
                 { title: 'Optimize hybrid vector chunking', desc: 'Solve vector collisions inside PDFs', prompt: 'How can we solve vector collision issues when processing large semantic chunks of academic PDFs?' },
@@ -245,7 +322,7 @@ const ChatArea = () => {
                   <Paperclip className="h-4 w-4" />
                 </button>
 
-                {/* Simulated voice record trigger */}
+                {/* Voice record trigger */}
                 <button
                   onClick={() => setShowVoiceRecorder(!showVoiceRecorder)}
                   title="Record audio context"
@@ -255,6 +332,51 @@ const ChatArea = () => {
                 >
                   <Mic className="h-4 w-4" />
                 </button>
+
+                {/* Separator */}
+                <div className="w-px h-4 bg-white/10 mx-1" />
+
+                {/* Inline Model Selector */}
+                <div className="relative">
+                  <button
+                    onClick={() => setModelDropdownOpen(prev => !prev)}
+                    title="Switch AI Model"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900/80 border border-white/8 hover:border-indigo-500/40 hover:bg-slate-800 transition-all text-[11px] font-medium text-slate-300 hover:text-slate-100 cursor-pointer"
+                  >
+                    {getModelIcon(selectedModel.icon)}
+                    <span className="max-w-[110px] truncate">{selectedModel.name}</span>
+                    <ChevronDown className={`h-3 w-3 text-slate-400 transition-transform duration-200 ${modelDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {modelDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setModelDropdownOpen(false)} />
+                      <div className="absolute bottom-full mb-2 left-0 w-64 bg-slate-950/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/50 p-1.5 z-50">
+                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest px-2 py-1">Select Model</p>
+                        <div className="space-y-0.5">
+                          {MODELS.map(m => (
+                            <button
+                              key={m.id}
+                              onClick={() => { setActiveModelId(m.id); setModelDropdownOpen(false); }}
+                              className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-all ${
+                                activeModelId === m.id
+                                  ? 'bg-indigo-500/20 text-indigo-200'
+                                  : 'hover:bg-white/5 text-slate-300 hover:text-slate-100'
+                              }`}
+                            >
+                              <div className="shrink-0">{getModelIcon(m.icon)}</div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[11px] font-semibold truncate">{m.name}</p>
+                                <p className="text-[9px] text-slate-500 truncate font-mono">{m.provider}</p>
+                              </div>
+                              {activeModelId === m.id && <Check className="h-3 w-3 text-indigo-400 shrink-0" />}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Submit trigger button */}

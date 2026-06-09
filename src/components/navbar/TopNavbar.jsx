@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Bell, ChevronDown, Check, Moon, Search, User, LogOut, 
-  Settings, Grid, LayoutGrid, Zap, Shield, Sparkles, Activity, Globe, Wind
+  Settings, Grid, LayoutGrid, Zap, Shield, Sparkles, Activity, Globe, Wind,
+  MessageSquare
 } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
 import { MODELS, TEAMS } from '../../utils/mockData';
@@ -88,6 +89,16 @@ const TopNavbar = () => {
             </>
           )}
         </div>
+
+        {/* Chat Workspace Link */}
+        <button 
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/60 border border-white/5 hover:border-white/10 hover:bg-slate-900 transition-all text-sm font-medium text-slate-200 hover:text-white"
+          title="Go to Chat Workspace"
+        >
+          <MessageSquare className="h-4 w-4 text-indigo-400" />
+          <span>Chat</span>
+        </button>
 
         {/* Team Selector */}
         <div className="relative hidden md:block">

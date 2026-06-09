@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, 
   BarChart, Bar, PieChart, Pie, Cell, Legend
@@ -8,10 +8,28 @@ import {
   Activity, Clock, UserCheck, Play, Box
 } from 'lucide-react';
 import { DASHBOARD_STATS } from '../utils/mockData';
+import { api } from '../utils/api';
 
 const DashboardPage = () => {
-  const stats = DASHBOARD_STATS.summary;
-  const charts = DASHBOARD_STATS.charts;
+  const [dashboardData, setDashboardData] = useState(DASHBOARD_STATS);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const statsData = await api.getDashboardStats();
+        setDashboardData(statsData);
+      } catch (err) {
+        console.error('Failed to load dashboard metrics from API', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const stats = dashboardData.summary;
+  const charts = dashboardData.charts;
 
   // Chart Palettes
   const PIE_COLORS = ['#6366F1', '#A855F7', '#EC4899', '#10B981'];

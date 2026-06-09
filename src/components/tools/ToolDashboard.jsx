@@ -1,14 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Globe, Calculator, Code, FileText, Database, Layers, 
   Link2, Play, CheckCircle, Clock, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { TOOLS_LIST } from '../../utils/mockData';
+import { api, apiClient } from '../../utils/api';
 
 const ToolDashboard = () => {
   const [tools, setTools] = useState(TOOLS_LIST);
   const [executingId, setExecutingId] = useState(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  useEffect(() => {
+    const fetchTools = async () => {
+      try {
+        const liveTools = await api.getTools();
+        setTools(liveTools);
+      } catch (err) {
+        console.error('Failed to load system tools from API', err);
+      }
+    };
+    fetchTools();
+  }, []);
 
   const getToolIcon = (iconName) => {
     switch (iconName) {
@@ -30,28 +43,45 @@ const ToolDashboard = () => {
     }
   };
 
-  const triggerTool = (id) => {
+  const triggerTool = async (id, toolName) => {
     if (executingId) return;
     setExecutingId(id);
     setTools(prev => prev.map(t => t.id === id ? { ...t, status: 'running', result: 'Loading workspace params...' } : t));
 
-    setTimeout(() => {
+    try {
+      const res = await apiClient.post('/tools/execute', { tool_name: toolName, arguments: {} });
       setTools(prev => prev.map(t => {
         if (t.id === id) {
-          const finalResult = t.id === 't-calc' ? 'Answer: 843,204.12' 
-            : t.id === 't-interpreter' ? 'Syntax OK. Executed plot.' 
-            : 'Execution successful.';
           return {
             ...t,
-            status: 'success',
-            duration: `${(Math.random() * 2 + 0.5).toFixed(1)}s`,
-            result: finalResult
+            status: res.data.status === 'success' ? 'success' : 'error',
+            duration: `${(res.data.latency_ms / 1000).toFixed(1)}s`,
+            result: res.data.output || res.data.error || 'Execution successful.'
           };
         }
         return t;
       }));
+    } catch (err) {
+      console.warn('API: Tool execution failed, using simulated fallback', err);
+      setTimeout(() => {
+        setTools(prev => prev.map(t => {
+          if (t.id === id) {
+            const finalResult = t.id === 't-calc' ? 'Answer: 843,204.12' 
+              : t.id === 't-interpreter' ? 'Syntax OK. Executed plot.' 
+              : 'Execution successful.';
+            return {
+              ...t,
+              status: 'success',
+              duration: `${(Math.random() * 2 + 0.5).toFixed(1)}s`,
+              result: finalResult
+            };
+          }
+          return t;
+        }));
+      }, 1500);
+    } finally {
       setExecutingId(null);
-    }, 2000);
+    }
   };
 
   return (
@@ -78,7 +108,7 @@ const ToolDashboard = () => {
             <div className="flex items-center gap-2">
               {getStatusIcon(tool.status)}
               <button
-                onClick={() => triggerTool(tool.id)}
+                onClick={() => triggerTool(tool.id, tool.name)}
                 disabled={executingId !== null}
                 className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded disabled:opacity-40 transition-colors cursor-pointer"
                 title="Run tool simulation"

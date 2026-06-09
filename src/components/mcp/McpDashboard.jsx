@@ -1,17 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Cpu, Share2, Code, ChevronDown, ChevronUp, Terminal
 } from 'lucide-react';
 import { MCP_MOCK } from '../../utils/mockData';
+import { api } from '../../utils/api';
 
 const McpDashboard = () => {
-  const [mcpState] = useState(MCP_MOCK);
-  const [selectedServer, setSelectedServer] = useState(mcpState.servers[0].id);
+  const [servers, setServers] = useState(MCP_MOCK.servers);
+  const [tools, setTools] = useState(MCP_MOCK.tools);
+  const [selectedServer, setSelectedServer] = useState(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [expandedTool, setExpandedTool] = useState(null);
 
-  const activeServer = mcpState.servers.find(s => s.id === selectedServer) || mcpState.servers[0];
-  const serverTools = mcpState.tools.filter(t => t.server === activeServer.name);
+  useEffect(() => {
+    const fetchMcpData = async () => {
+      try {
+        const activeServers = await api.getMcpServers();
+        setServers(activeServers);
+        if (activeServers.length > 0) {
+          setSelectedServer(activeServers[0].id);
+        }
+
+        const activeTools = await api.getMcpTools();
+        setTools(activeTools);
+      } catch (err) {
+        console.error('Failed to load MCP nodes from API', err);
+      }
+    };
+    fetchMcpData();
+  }, []);
+
+  const activeServer = servers.find(s => s.id === selectedServer) || servers[0] || MCP_MOCK.servers[0];
+  const serverTools = tools.filter(t => t.server === activeServer.name);
 
   const getHealthColor = (health) => {
     switch (health) {
@@ -29,7 +49,7 @@ const McpDashboard = () => {
       <div className="space-y-1.5">
         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Connected Server Nodes</label>
         <div className="space-y-1.5">
-          {mcpState.servers.map(server => (
+          {servers.map(server => (
             <div
               key={server.id}
               onClick={() => setSelectedServer(server.id)}
@@ -96,13 +116,14 @@ const McpDashboard = () => {
               <Terminal className="h-3 w-3" /> Logs
             </p>
             <div className="bg-slate-950 rounded p-2 font-mono text-[8px] text-slate-400 h-24 overflow-y-auto scrollbar-hidden">
-              {mcpState.logs.slice(0, 3).map((log, idx) => (
+              {MCP_MOCK.logs.slice(0, 3).map((log, idx) => (
                 <p key={idx} className="truncate">{log}</p>
               ))}
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 };
